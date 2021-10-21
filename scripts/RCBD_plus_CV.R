@@ -1,6 +1,6 @@
 
 # RCBD model --------------------------------------------------------------
-pheno_train <- read.csv("../Downloads/2021-09-17T174543phenotype_download.csv",header = T)
+pheno_train <- read.csv("../data/2021-09-17T174543phenotype_download.csv",header = T)
 df.tr <- split(pheno_train,pheno_train$studyYear)
 geno.ID.tr <- colnames(pheno_train)[62]
 traits.tr <- colnames(pheno_train)[c(42,51,52,61)]
