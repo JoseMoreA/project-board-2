@@ -12,7 +12,7 @@ for (h in names(df.tr)){
     mod.name <- paste("model",h,i,sep="_")
     df.tr[[h]][,geno.ID.tr] <- as.factor(df.tr[[h]][,geno.ID.tr])
     mm1 <- mmer(fixed = fix_frm,
-                random = ~  replicate  ,
+                random = ~  replicate,
                 data = df.tr[[h]])
     blues[[mod.name]] <- mm1$Beta
     blues[[mod.name]]$Effect <-
@@ -23,10 +23,8 @@ for (h in names(df.tr)){
 
 
 # Cross validation --------------------------------------------------------
-
-
-geno.mat <- readRDS("../../Downloads/geno_mat.rds")
-# blues <- blues2 # BLUEs from RCBD model
+geno.mat <- readRDS("../data/geno_mat.rds")
+blues <- readRDS("../data/blues.rcbd.rds")
 traits <- colnames(blues[[1]])[-1]
 geno.ID <- "Effect"
 
@@ -37,7 +35,7 @@ for(df in names(blues)){
                          as.character(blues.cv[[df]][,geno.ID]),  ]
   G_mat <- rrBLUP::A.mat(X = as.matrix(geno.mat.cv), 
                          min.MAF = .1,shrink = T)
-  k=7;cyc=50
+  k=7;cyc=50    #k-folds and number of iterations
   for (c in 1:cyc){
     flds <- createFolds(seq(1:nrow(blues.cv[[df]])),
                         k = k, list = TRUE, returnTrain = FALSE)
