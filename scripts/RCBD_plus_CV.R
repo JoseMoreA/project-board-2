@@ -27,7 +27,7 @@ geno.mat <- readRDS("../data/geno_mat.rds")
 blues <- readRDS("../data/blues.rcbd.rds")
 traits <- colnames(blues[[1]])[-1]
 geno.ID <- "Effect"
-
+acc.all <- list()
 for(df in names(blues)){
   blues.cv <- blues
   blues.cv[[df]] <- droplevels(blues.cv[[df]][ which(blues.cv[[df]][,geno.ID] %in% rownames(geno.mat)), ])
@@ -40,7 +40,7 @@ for(df in names(blues)){
     flds <- createFolds(seq(1:nrow(blues.cv[[df]])),
                         k = k, list = TRUE, returnTrain = FALSE)
     for (e in traits[4]){
-      acc.0 <- NULL
+      acc.k <- NULL
       for (f in 1:k){
         blues.cv <- blues
         blues.cv[[df]] <- droplevels(blues.cv[[df]][ which(blues.cv[[df]][,geno.ID] %in% rownames(geno_df3)), ])
@@ -54,12 +54,12 @@ for(df in names(blues)){
                    data = blues.cv[[df]])
         PRED0 <- data.frame(ID=names(mm$U$`u:Effect`[[e ]])
                             ,gebv=as.numeric(mm$U$`u:Effect`[[e ]]))
-        PRED.vp0 <- merge(blues2[[df]][flds[[f]],c(1,5)],PRED0,by.x =  geno.ID,by.y = "ID") 
-        acc.0  <- c(acc.0,cor(PRED.vp0[,e],
+        PRED.vp0 <- merge(blues[[df]][flds[[f]],c(1,5)],PRED0,by.x =  geno.ID,by.y = "ID") 
+        acc.k  <- c(acc.0,cor(PRED.vp0[,e],
                               PRED.vp0[,"gebv"],use = "complete.obs"))
       }
       tr.tr <- paste(e,df,sep=".")
-      acc.1.all[[tr.tr]] <- append(acc.1.all[[tr.tr]],values = acc.0)
+      acc.all[[tr.tr]] <- append(acc.all[[tr.tr]],values = acc.k)
     }
   }
 }
