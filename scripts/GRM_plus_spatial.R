@@ -1,41 +1,45 @@
 
-
 # GRM + spatial fit -------------------------------------------------------
+pheno_train <- read.csv("../data/2021-09-17T174543phenotype_download.csv",header = T)
+geno.mat <- readRDS("../data/geno_mat.rds")
+list.tr <- split(pheno_train,pheno_train$studyYear)
+traits <- colnames(pheno_train)[c(42,51,52,61)]
 
-df18 <- droplevels(tr$`2018`[tr$`2018`$replicate ==2,])
-
-geno18 <- geno.mat[rownames(geno.mat) %in% 
-                     as.character(tr$`2018`$germplasmName),  ]
-G_mat <- rrBLUP::A.mat(X = as.matrix(geno18), 
-                       min.MAF = .1,shrink = T)
+acc.all<- list()
+for(df in names(list.tr)){
+  list.tr.cv <- list.tr
+  list.tr.cv[[df]] <- droplevels(list.tr.cv[[df]][list.tr.cv[[df]]$replicate ==2,])
+  geno.mat.cv <- geno.mat[rownames(geno.mat) %in% 
+                       as.character(list.tr.cv[[df]]$germplasmName),  ]
+  G_mat <- rrBLUP::A.mat(X = as.matrix(geno.mat.cv), 
+                         min.MAF = .1,shrink = T)
   k=7;cyc=5
-  acc.1.all<- list()
   for (c in 1:cyc){
-    flds <- caret::createFolds(seq(1:nrow(df18)),
+    flds <- caret::createFolds(seq(1:nrow(list.tr.cv[[df]])),
                         k = k, list = TRUE, returnTrain = FALSE)
-    # for (e in trait.cv){
-      acc.0 <- NULL
+    for (e in traits[4]){
+      acc.k <- NULL
       for (f in 1:k){
-        blues.cv <- df18
-        blues.cv <- droplevels(blues.cv[ which(blues.cv$germplasmName %in% rownames(geno18)), ])
-        blues.cv[flds[[f]],trait[4]] <- NA
-        blues.cv$germplasmName <- as.factor(blues.cv$germplasmName)
-        mm <- mmer(fixed = Yield.LSU_01.0000138 ~ 1,
+        df.tr <- list.tr.cv[[df]]
+        df.tr <- droplevels(df.tr[ which(df.tr$germplasmName %in% rownames(geno.mat.cv)), ])
+        df.tr[flds[[f]],e] <- NA
+        df.tr$germplasmName <- as.factor(df.tr$germplasmName)
+        frm.cv <- paste(e,"~ 1 ",collapse = " ")
+        fix_frm.cv <- formula(paste(frm.cv, collapse = " "))
+        mm <- mmer(fixed = fix_frm.cv,
                    random = ~  vs(germplasmName,Gu=G_mat) + 
                      vs(rowNumber) + vs(colNumber)+
                      vs(spl2D(rowNumber,colNumber)),
                    rcov = ~vs(units),
-                   data = blues.cv)
+                   data = df.tr)
         PRED0 <- data.frame(ID=names(mm$U$`u:germplasmName`[[e ]])
-                            ,gblup.trait= 
-                              as.numeric(mm$U$`u:germplasmName`[[e ]]))
-        # PRED.vp0 <- droplevels(data.frame(ID=blues.cv[flds[[f]],"germplasmName" ],
-                                # gblup=PRED0$gblup.trait[PRED0$ID %in% blues.cv[flds[[f]],"germplasmName"] ] ))
-        PRED.vp0 <- merge(df18[flds[[f]],c(19,61)],PRED0,by.x =  "germplasmName",by.y = "ID")
-        acc.0  <- c(acc.0,cor(PRED.vp0$Yield.LSU_01.0000138,PRED.vp0$gblup.trait,use = "complete.obs"))
+                            ,gebv=as.numeric(mm$U$`u:germplasmName`[[e ]]))
+        PRED.vp0 <- merge(list.tr.cv[[df]][flds[[f]],c(19,61)],PRED0,by.x =  "germplasmName",by.y = "ID")
+        acc.k  <- c(acc.0,cor(PRED.vp0[,e],
+                              PRED.vp0[,"gebv"],use = "complete.obs"))
       }
-      tr.tr <- paste(e,"df18",sep=".")
-      acc.1.all[[tr.tr]] <- append(acc.1.all[[tr.tr]],values = acc.0)
-    # }
+      tr.tr <- paste(e,df,sep=".")
+      acc.all[[tr.tr]] <- append(acc.all[[tr.tr]],values = acc.k)
+    }
   }
-# }
+}
